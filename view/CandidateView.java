@@ -1,12 +1,14 @@
 package view;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseListener;
 
 public class CandidateView extends JFrame {
-    private JList<String> jobList;
-    private DefaultListModel<String> listModel;
+    private JTable jobTable; 
+    private DefaultTableModel tableModel;
     private JButton applyButton;
     private JButton logoutButton;
 
@@ -16,10 +18,21 @@ public class CandidateView extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        listModel = new DefaultListModel<>();
-        jobList = new JList<>(listModel);
-        jobList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane scrollPane = new JScrollPane(jobList);
+        
+        String[] columnNames = {"Job Title", "Company", "Deadline"};
+        tableModel = new DefaultTableModel(columnNames, 0) {
+           
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jobTable = new JTable(tableModel);
+        jobTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // เลือกได้ทีละแถว
+        jobTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        jobTable.setRowHeight(25);
+        JScrollPane scrollPane = new JScrollPane(jobTable);
+        
 
         JPanel buttonPanel = new JPanel();
         applyButton = new JButton("Apply for Selected Job");
@@ -31,20 +44,27 @@ public class CandidateView extends JFrame {
         add(buttonPanel, BorderLayout.SOUTH);
     }
     
-    public JList<String> getJobList() {
-        return jobList;
+   
+    public JTable getJobTable() {
+        return jobTable;
     }
     
-    public DefaultListModel<String> getListModel() {
-        return listModel;
+    public DefaultTableModel getTableModel() {
+        return tableModel;
     }
 
+   
     public void addApplyListener(ActionListener listener) {
         applyButton.addActionListener(listener);
     }
 
     public void addLogoutListener(ActionListener listener) {
         logoutButton.addActionListener(listener);
+    }
+    
+    
+    public void addJobTableMouseListener(MouseListener listener) {
+        jobTable.addMouseListener(listener);
     }
     
     public void showMessage(String message) {

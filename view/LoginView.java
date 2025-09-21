@@ -11,7 +11,7 @@ public class LoginView extends JFrame {
 
     public LoginView() {
         setTitle("Job Fair Login");
-        setSize(400, 200);
+        setSize(600, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // Center the window
 

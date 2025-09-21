@@ -7,6 +7,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -20,11 +22,11 @@ public class AppController {
         this.loginView = loginView;
         this.authController = authController;
 
-      
+        // เชื่อมปุ่ม Login ใน View เข้ากับ Controller
         this.loginView.addLoginListener(new LoginListener());
     }
 
-    
+    // Listener สำหรับจัดการการกดปุ่ม Login
     class LoginListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -49,7 +51,7 @@ public class AppController {
         AdminView adminView = new AdminView();
         loadCandidatesToTable(adminView);
         
-        // Logout Logic:
+        // Logout Logic: ปิดหน้าต่างปัจจุบันแล้วเปิดหน้า Login ใหม่
         adminView.addLogoutListener(e -> {
             adminView.dispose();
             showLoginScreen();
@@ -74,50 +76,66 @@ public class AppController {
 
     private void showCandidateDashboard(Candidate candidate) {
         CandidateView candidateView = new CandidateView();
-        loadOpenJobsToList(candidateView);
+        loadOpenJobsToTable(candidateView); // เปลี่ยนมาใช้เมธอดสำหรับตาราง
 
-        // Logout Logic:
+        // Logout Logic (เหมือนเดิม)
         candidateView.addLogoutListener(e -> {
             candidateView.dispose();
             showLoginScreen();
         });
         
-        // Apply Logic
+        // Apply Button Logic (ปรับให้ดึงข้อมูลจากตาราง)
         candidateView.addApplyListener(e -> {
-            int selectedIndex = candidateView.getJobList().getSelectedIndex();
-            if (selectedIndex >= 0) {
-               
-                List<Job> openJobs = getOpenJobs();
-                Job selectedJob = openJobs.get(selectedIndex);
-                
-                if (LocalDate.now().isAfter(selectedJob.getDeadline())) {
-                    candidateView.showMessage("Application failed: The application deadline has passed.");
-                    return;
-                }
-                 boolean alreadyApplied = Database.applications.stream()
-                    .anyMatch(app -> app.getCandidateId().equals(candidate.getUserId()) && app.getJobId().equals(selectedJob.getJobId()));
-                if(alreadyApplied){
-                    candidateView.showMessage("Application failed: You have already applied for this job.");
-                    return;
-                }
-
-                Application newApp = new Application(selectedJob.getJobId(), candidate.getUserId(), LocalDate.now());
-                Database.applications.add(newApp);
-                candidateView.showMessage("Application successful for " + selectedJob.getTitle() + "!");
-
+            int selectedRow = candidateView.getJobTable().getSelectedRow();
+            if (selectedRow >= 0) {
+                applyForJob(selectedRow, candidate, candidateView);
             } else {
                 candidateView.showMessage("Please select a job to apply for.");
+            }
+        });
+
+        // Logic สำหรับการดับเบิลคลิกบนตาราง
+        candidateView.addJobTableMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) { // เช็คว่าเป็นการดับเบิลคลิก
+                    int selectedRow = candidateView.getJobTable().getSelectedRow();
+                    if (selectedRow >= 0) {
+                        applyForJob(selectedRow, candidate, candidateView);
+                    }
+                }
             }
         });
 
         candidateView.setVisible(true);
     }
     
-    // 
+    // เมธอดสำหรับจัดการตรรกะการสมัครงาน (ใช้ร่วมกัน)
+    private void applyForJob(int selectedRow, Candidate candidate, CandidateView view) {
+        List<Job> openJobs = getOpenJobs();
+        Job selectedJob = openJobs.get(selectedRow); // ดึง Job object จาก list โดยใช้ index ของแถวที่เลือก
+
+        // Business logic
+        if (LocalDate.now().isAfter(selectedJob.getDeadline())) {
+            view.showMessage("Application failed: The application deadline has passed.");
+            return;
+        }
+        boolean alreadyApplied = Database.applications.stream()
+            .anyMatch(app -> app.getCandidateId().equals(candidate.getUserId()) && app.getJobId().equals(selectedJob.getJobId()));
+        if (alreadyApplied) {
+            view.showMessage("Application failed: You have already applied for this job.");
+            return;
+        }
+
+        Application newApp = new Application(selectedJob.getJobId(), candidate.getUserId(), LocalDate.now());
+        Database.applications.add(newApp);
+        view.showMessage("Application successful for " + selectedJob.getTitle() + "!");
+    }
+    
+    // --- Helper methods to connect Model to View ---
 
     private void loadCandidatesToTable(AdminView view) {
         DefaultTableModel model = view.getTableModel();
-        model.setRowCount(0); 
+        model.setRowCount(0); // Clear existing data
         List<Candidate> sortedCandidates = Database.candidates.stream()
                 .sorted(Comparator.comparing(Candidate::getFullName))
                 .collect(Collectors.toList());
@@ -127,13 +145,13 @@ public class AppController {
         }
     }
 
-    private void loadOpenJobsToList(CandidateView view) {
-        DefaultListModel<String> listModel = view.getListModel();
-        listModel.clear();
+    private void loadOpenJobsToTable(CandidateView view) {
+        DefaultTableModel tableModel = view.getTableModel();
+        tableModel.setRowCount(0); // เคลียร์ข้อมูลเก่า
+        
         getOpenJobs().forEach(job -> {
              Company company = findCompanyById(job.getCompanyId());
-             String displayText = String.format("%s at %s (Deadline: %s)", job.getTitle(), company.getName(), job.getDeadline());
-             listModel.addElement(displayText);
+             tableModel.addRow(new Object[]{job.getTitle(), company.getName(), job.getDeadline().toString()});
         });
     }
 
@@ -168,7 +186,7 @@ public class AppController {
         newLoginView.setVisible(true);
     }
     
-    
+    // --- Helper methods to find data from Model (reused logic) ---
     private List<Job> getOpenJobs() {
          return Database.jobs.stream()
                 .filter(job -> "Open".equals(job.getStatus()))
