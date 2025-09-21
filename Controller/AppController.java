@@ -22,11 +22,11 @@ public class AppController {
         this.loginView = loginView;
         this.authController = authController;
 
-        // เชื่อมปุ่ม Login ใน View เข้ากับ Controller
+        
         this.loginView.addLoginListener(new LoginListener());
     }
 
-    // Listener สำหรับจัดการการกดปุ่ม Login
+    
     class LoginListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -35,7 +35,7 @@ public class AppController {
             User user = authController.login(email, password);
 
             if (user != null) {
-                loginView.dispose(); // ปิดหน้าจอ Login
+                loginView.dispose(); 
                 if ("ADMIN".equals(user.getRole())) {
                     showAdminDashboard();
                 } else if ("CANDIDATE".equals(user.getRole())) {
@@ -51,7 +51,7 @@ public class AppController {
         AdminView adminView = new AdminView();
         loadCandidatesToTable(adminView);
         
-        // Logout Logic: ปิดหน้าต่างปัจจุบันแล้วเปิดหน้า Login ใหม่
+        
         adminView.addLogoutListener(e -> {
             adminView.dispose();
             showLoginScreen();
@@ -76,15 +76,15 @@ public class AppController {
 
     private void showCandidateDashboard(Candidate candidate) {
         CandidateView candidateView = new CandidateView();
-        loadOpenJobsToTable(candidateView); // เปลี่ยนมาใช้เมธอดสำหรับตาราง
+        loadOpenJobsToTable(candidateView); 
 
-        // Logout Logic (เหมือนเดิม)
+        
         candidateView.addLogoutListener(e -> {
             candidateView.dispose();
             showLoginScreen();
         });
         
-        // Apply Button Logic (ปรับให้ดึงข้อมูลจากตาราง)
+        
         candidateView.addApplyListener(e -> {
             int selectedRow = candidateView.getJobTable().getSelectedRow();
             if (selectedRow >= 0) {
@@ -94,10 +94,10 @@ public class AppController {
             }
         });
 
-        // Logic สำหรับการดับเบิลคลิกบนตาราง
+        
         candidateView.addJobTableMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) { // เช็คว่าเป็นการดับเบิลคลิก
+                if (e.getClickCount() == 2) { 
                     int selectedRow = candidateView.getJobTable().getSelectedRow();
                     if (selectedRow >= 0) {
                         applyForJob(selectedRow, candidate, candidateView);
@@ -109,7 +109,7 @@ public class AppController {
         candidateView.setVisible(true);
     }
     
-    // เมธอดสำหรับจัดการตรรกะการสมัครงาน (ใช้ร่วมกัน)
+    
     private void applyForJob(int selectedRow, Candidate candidate, CandidateView view) {
         List<Job> openJobs = getOpenJobs();
         Job selectedJob = openJobs.get(selectedRow); // ดึง Job object จาก list โดยใช้ index ของแถวที่เลือก
@@ -131,7 +131,7 @@ public class AppController {
         view.showMessage("Application successful for " + selectedJob.getTitle() + "!");
     }
     
-    // --- Helper methods to connect Model to View ---
+   
 
     private void loadCandidatesToTable(AdminView view) {
         DefaultTableModel model = view.getTableModel();
@@ -186,7 +186,7 @@ public class AppController {
         newLoginView.setVisible(true);
     }
     
-    // --- Helper methods to find data from Model (reused logic) ---
+   
     private List<Job> getOpenJobs() {
          return Database.jobs.stream()
                 .filter(job -> "Open".equals(job.getStatus()))
